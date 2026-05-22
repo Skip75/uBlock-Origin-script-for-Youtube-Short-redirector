@@ -1,4 +1,4 @@
-YouTubeJSredirector.js text/javascript
+YouTubeJSredirector text/javascript
     
 (function () {
     'use strict';
