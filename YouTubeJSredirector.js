@@ -1,11 +1,10 @@
 YouTubeJSredirector text/javascript
-    
+
 (function () {
     'use strict';
 
-    function extractShortsId(url) {
-        // Extrait l'ID depuis /shorts/VIDEO_ID[/][?...][#...]
-        const match = url.match(/\/shorts\/([A-Za-z0-9_-]{11})/);
+    function extractShortsId(pathname) {
+        const match = pathname.match(/^\/shorts\/([A-Za-z0-9_-]{11})/);
         return match ? match[1] : null;
     }
 
@@ -14,33 +13,30 @@ YouTubeJSredirector text/javascript
         const videoId = extractShortsId(url.pathname);
         if (!videoId) return null;
 
-        // Construire les paramètres : on garde tout sauf si on veut filtrer
         const params = new URLSearchParams(url.search);
-        // 't' ou 'start' → on les conserve comme 't' pour le lecteur watch
         const t = params.get('t') || params.get('start');
         params.delete('start');
-
-        // Injecter video id
         params.set('v', videoId);
-        if (t && !params.has('t')) params.set('t', t);
+        if (t) params.set('t', t);
 
-        // Reconstruire l'URL proprement
         return `${url.origin}/watch?${params.toString()}${url.hash}`;
     }
 
     function checkAndRedirect() {
-        if (!window.location.pathname.match(/^\/shorts\//)) return;
+        if (!/^\/shorts\//.test(location.pathname)) return;
 
-        const newUrl = buildWatchUrl(window.location.href);
-        if (newUrl) {
-            window.location.replace(newUrl);
+        const newUrl = buildWatchUrl(location.href);
+        console.log('shorts redirector', { href: location.href, newUrl });
+
+        if (newUrl && newUrl !== location.href) {
+            location.replace(newUrl);
         }
     }
 
     checkAndRedirect();
+    window.addEventListener('yt-navigate-finish', checkAndRedirect);
 
-    let lastUrl = window.location.href;
-
+    let lastUrl = location.href;
     const observer = new MutationObserver(() => {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
@@ -48,11 +44,7 @@ YouTubeJSredirector text/javascript
         }
     });
 
-    if (document.body) {
-        observer.observe(document.body, { childList: true, subtree: true });
-    } else {
-        window.addEventListener('DOMContentLoaded', () => {
-            observer.observe(document.body, { childList: true, subtree: true });
-        });
+    if (document.documentElement) {
+        observer.observe(document.documentElement, { childList: true, subtree: true });
     }
 })();
